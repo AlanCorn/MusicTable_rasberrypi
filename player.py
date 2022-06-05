@@ -47,7 +47,7 @@ class Player:
 
     # 拖动指定的毫秒值处播放。成功返回0，失败返回-1 (需要注意，只有当前多媒体格式或流媒体协议支持才会生效)
     def set_time(self, ms):
-        return self.media.get_time()
+        return self.media.set_time(ms)
 
     # 音视频总长度，返回毫秒值
     def get_length(self):

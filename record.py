@@ -13,7 +13,7 @@ def record():
     # 录音时间
     RECORD_SECONDS = 5
     # 要写入的文件名
-    WAVE_OUTPUT_FILENAME = "output.wav"
+    WAVE_OUTPUT_FILENAME = "../assets/output.wav"
     # 创建PyAudio对象
     p = pyaudio.PyAudio()
 
@@ -66,7 +66,7 @@ def ASR():
             return fp.read()
 
     # 识别本地文件
-    res = client.asr(get_file_content('output.wav'), 'wav', 16000, {
+    res = client.asr(get_file_content('../assets/output.wav'), 'wav', 16000, {
         'dev_pid': 1536,
     })
 

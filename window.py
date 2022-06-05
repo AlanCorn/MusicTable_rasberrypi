@@ -1,11 +1,12 @@
 import sys
+from operator import mod
 from pprint import pprint
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QTimer, QCoreApplication
-from PyQt5.QtWidgets import QWidget, QAction
+from PyQt5.QtWidgets import QWidget
 
-from api import getCaptcha, loginCaptcha, loginStatus, searchMusic
+from api import getCaptcha, loginCaptcha, music_list
 from player import Player
 from record import ASR as listenASR
 from ui.loginDialog import Ui_Dialog as Ui_LoginDialog
@@ -15,37 +16,71 @@ from ui.ui import Ui_MainWindow
 # 主窗口类
 class myWindow(Ui_MainWindow):
     def __init__(self, Dialog):
+        self.musicResultsList = []  # 搜索结果
+        self.currentPlaying = -1  # 正在播放
+        self.musicPlaylists = []  # 播放列表
         super().setupUi(Dialog)
         # 实例化播放器
         self.mediaPlayer = Player()
+        self.mediaPlayer.set_uri(
+            "https://xfyun-doc.cn-bj.ufileos.com/1557306419885028/%E4%B8%80%E6%AC%A1%E5%B0%B1%E5%A5%BD16k.wav")
         self.loginDialog = LoginDialog()
-        self.mediaPlayer.set_uri("https://music.163.com/song/media/outer/url?id=33894312.mp3")
-
-        self.playbutton.clicked.connect(self.playAndPause)
+        # 播放列表操作按钮
+        self.clearList.clicked.connect(self.clearPlayList)
+        self.deleteListItem.clicked.connect(self.deletePlayListItem)
+        # 媒体控制按钮
+        self.playbutton.clicked.connect(self.playCurrentMusic)
+        self.prebutton.clicked.connect(self.playPreMusic)
+        self.nextbutton.clicked.connect(self.playNextMusic)
+        # 添加到播放列表
+        self.addToList.clicked.connect(self.addToMusicPlaylists)
+        self.searchMusicBtn.clicked.connect(self.searchMusicName)
+        # 登录与关闭
         self.loginBtn.clicked.connect(self.showDialog)
         self.closeBtn.clicked.connect(QCoreApplication.instance().quit)
+        # 每秒刷新进度条
+        progressBar_Slot = QTimer(MainWindow)
+        progressBar_Slot.timeout.connect(self.reloadProgressBar)
+        progressBar_Slot.start(1000)
 
-        self.searchMusicBtn.clicked.connect(self.searchMusicName)
-        # userStatus = QTimer(self.loginDialog)
-        # userStatus.timeout.connect(self.flushStatus)
-        # userStatus.start(1000)
+    def reloadProgressBar(self):
+        if self.mediaPlayer.get_state() >= 0:
+            wholeTime = self.mediaPlayer.get_length() / 1000
+            nowTime = self.mediaPlayer.get_time() / 1000
+            nowMin = int(nowTime / 60)
+            nowSec = int(mod(nowTime, 60))
+            wholeMin = int(wholeTime / 60)
+            wholeSec = int(mod(wholeTime, 60))
+            position = self.mediaPlayer.get_position()
+            self.musicProgress.setValue(int(position * 100))
+            self.label_7.setText(str(nowMin) + ":" + str(nowSec) + "/" + str(wholeMin) + ":" + str(wholeSec))
+        else:
+            self.musicProgress.setValue(0)
+            self.label_7.setText("0:00/0:00")
 
-    def flushStatus(self):
-        userid = loginStatus()
-        pprint(userid)
+    def reloadPlayList(self):
+        self.list.clear()
+        for each in self.musicPlaylists:
+            tmpStr = each['name'] + '-' + each['singer']
+            self.list.addItem(tmpStr)
 
-    def addItemToResults(self, musicList):
-        for each in musicList:
+    def addItemToResults(self):
+        # 清除搜索列表
+        self.results.clear()
+        for each in self.musicResultsList:
+            tmpStr = each['name'] + '-' + each['singer']
             item = QtWidgets.QListWidgetItem()
             item.setCheckState(QtCore.Qt.Unchecked)
-            item.setText(each)
+            item.setText(tmpStr)
             self.results.addItem(item)
 
-    def playAndPause(self):
-        if self.mediaPlayer.is_playing():
-            self.mediaPlayer.pause()
-        else:
-            self.mediaPlayer.play()
+    def addToMusicPlaylists(self):
+        # 将勾选的的搜索结果添加到播放队列中
+        for i in range(self.results.count()):
+            print(self.results.item(i).checkState())  # 2 是被选中
+            if self.results.item(i).checkState() == 2:
+                self.musicPlaylists.append(self.musicResultsList[i])
+        self.reloadPlayList()
 
     def showDialog(self):
         self.loginDialog.show()
@@ -53,10 +88,46 @@ class myWindow(Ui_MainWindow):
     def searchMusicName(self):
         name = listenASR()
         print("识别到的音乐名", name)
-        result = searchMusic(name)
-        print("搜索结果", result)
-        # 将搜索结果加入 Results
-        myWindowObj.addItemToResults(["海阔天空ddddd"])
+        result = music_list(name)
+        # 将搜索结果加入 musicResultsList
+        self.musicResultsList = result
+
+        myWindowObj.addItemToResults()
+
+    def playCurrentMusic(self):
+        if self.list.count() > 0:
+            if self.currentPlaying == -1 or self.currentPlaying >= self.list.count():
+                self.currentPlaying = 0  # 超出范围,跳到第一首
+            self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
+        else:
+            self.currentPlaying = -1
+        if self.currentPlaying != -1:
+            self.mediaPlayer.play()
+
+    def playPreMusic(self):
+        self.mediaPlayer.release()
+        self.currentPlaying = mod(self.currentPlaying + self.list.count() - 1, self.list.count())   # 上一首，如果没有上一首就是最后一首，循环
+        self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
+        self.playCurrentMusic()
+
+    def playNextMusic(self):
+        self.mediaPlayer.release()
+        self.currentPlaying = mod(self.currentPlaying + self.list.count() + 1, self.list.count())   # 同理
+        self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
+        self.playCurrentMusic()
+
+    def jumpPre5s(self):
+        self.mediaPlayer.set_time(self.mediaPlayer.get_time()-5000)
+
+    def jumpNext5s(self):
+        self.mediaPlayer.set_time(self.mediaPlayer.get_time()+5000)
+
+    def clearPlayList(self):
+        self.list.clear()
+
+    def deletePlayListItem(self):
+        print("删除行", self.list.currentRow())
+        self.list.takeItem(self.list.currentRow())
 
 
 class LoginDialog(QWidget, Ui_LoginDialog):
