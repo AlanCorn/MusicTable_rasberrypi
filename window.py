@@ -20,6 +20,7 @@ class myWindow(Ui_MainWindow):
     def __init__(self, Dialog):
         self.musicResultsList = []  # 搜索结果
         self.currentPlaying = -1  # 正在播放
+        self.currentPosition = 0
         self.musicPlaylists = [{'name': '海阔天空',
                                 'singer': 'Beyond',
                                 'song_url': 'http://m8.music.126.net/20220606105627/2f1d8f15c3fa32575f39ca8748838ef5/ymusic/7cbb/a3a8/58c3/bc8284e8ee123ec77f4b1c0918579dbb.mp3',
@@ -64,8 +65,16 @@ class myWindow(Ui_MainWindow):
             wholeSec = int(mod(wholeTime, 60))
             position = self.mediaPlayer.get_position()
             self.musicProgress.setValue(int(position * 100))
+            self.currentPosition = self.mediaPlayer.get_position()
             self.label_7.setText(
                 str(nowMin) + ":" + str(nowSec).zfill(2) + "/" + str(wholeMin) + ":" + str(wholeSec).zfill(2))
+        if self.currentPlaying != -1:
+            url = self.musicPlaylists[self.currentPlaying]['picurl']
+            res = requests.get(url)
+            img = QImage.fromData(res.content)
+            self.label_5.setPixmap(QPixmap.fromImage(img))
+            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
+            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
 
     def reloadPlayList(self):
         self.list.clear()
@@ -101,28 +110,23 @@ class myWindow(Ui_MainWindow):
         result = music_list(name)
         # 将搜索结果加入 musicResultsList
         self.musicResultsList = result
-
         myWindowObj.addItemToResults()
 
     def playCurrentMusic(self):
         if self.list.count() > 0:
             if self.currentPlaying == -1 or self.currentPlaying >= self.list.count():
                 self.currentPlaying = 0  # 超出范围,跳到第一首
-            self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
         else:
             self.currentPlaying = -1
         if self.currentPlaying != -1:
-            url = self.musicPlaylists[self.currentPlaying]['picurl']
-            res = requests.get(url)
-            img = QImage.fromData(res.content)
-            self.label_5.setPixmap(QPixmap.fromImage(img))
-            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
-            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
             print("get_state", self.mediaPlayer.get_state())
             print("is_playing", self.mediaPlayer.is_playing())
             if self.mediaPlayer.get_state() == 0:
+                self.mediaPlayer.play()
+            elif self.mediaPlayer.get_state() == 1:
                 self.mediaPlayer.pause()
             else:
+                self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
                 self.mediaPlayer.play()
 
     def playPreMusic(self):
