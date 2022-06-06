@@ -64,6 +64,7 @@ def loginStatus():
     pprint(result)
     return result
 
+
 def userDetail(id):
     result = requests.get(baseUrl + search, params={
         'uid': id,
@@ -71,6 +72,7 @@ def userDetail(id):
     result = json.loads(str(result, 'utf-8'))
     pprint(result)
     return result
+
 
 def music_list(song_name):
     result_song_list = []

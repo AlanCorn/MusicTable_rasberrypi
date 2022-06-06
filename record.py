@@ -1,9 +1,18 @@
 import wave
+from urllib.request import Request
+
 import pyaudio
 from aip import AipSpeech
+from pprint import pprint
+
+import requests
+import base64
+import json
+import time
+import hashlib
 
 
-def record():
+def record(sec):
     # 定义数据流块
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
@@ -11,9 +20,9 @@ def record():
     CHANNELS = 1
     RATE = 16000
     # 录音时间
-    RECORD_SECONDS = 5
+    RECORD_SECONDS = sec
     # 要写入的文件名
-    WAVE_OUTPUT_FILENAME = "../assets/output.wav"
+    WAVE_OUTPUT_FILENAME = "./assets/output.wav"
     # 创建PyAudio对象
     p = pyaudio.PyAudio()
 
@@ -45,13 +54,16 @@ def record():
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
-    wf.writeframes(b''.join(frames))
+    result = b''.join(frames)
+    wf.writeframes(result)
     wf.close()
+    return result
 
 
+# 语音识别
 def ASR():
-    # 录音
-    record()
+    # 录音5秒，识别出文字
+    record(5)
 
     """ 你的 APPID AK SK """
     APP_ID = '26351908'
@@ -66,7 +78,7 @@ def ASR():
             return fp.read()
 
     # 识别本地文件
-    res = client.asr(get_file_content('../assets/output.wav'), 'wav', 16000, {
+    res = client.asr(get_file_content('./assets/output.wav'), 'wav', 16000, {
         'dev_pid': 1536,
     })
 
@@ -76,5 +88,50 @@ def ASR():
     return res.get("err_no")
 
 
+# 听歌识曲
+def SongReco():
+    record(20)
+    # 在控制台获取appid等信息
+    appid = "cafb4a7d"
+    apikey = "a9743f46db3cdfa33be6dede43282e91"
+
+    file = open('./assets/output.wav', 'rb')
+    info = file.read()                      # 音频二进制数据
+
+
+    baseUrl = "http://webqbh.xfyun.cn/v1/service/v1/qbh"
+    curtime = str(int(time.time()))
+    print(curtime)
+    # 使用audio_url传输音频数据时，http request body须为空。
+    # 直接把音频二进制数据写入到Http Request Body时，不需要设置audio_url参数
+    param = {
+        "aue": "raw",
+        "sample_rate": "16000"
+    }
+    base64_param = base64.urlsafe_b64encode(json.dumps(param).encode('utf-8'))
+    tt = str(base64_param, 'utf-8')
+    m2 = hashlib.md5()
+    m2.update((apikey + curtime + tt).encode('utf-8'))
+    checksum = m2.hexdigest()
+
+    header = {
+        "X-CurTime": curtime,
+        "X-Appid": appid,
+        "X-CheckSum": checksum,
+    }
+
+    res = Request(baseUrl, info, header).data
+    print(res)
+
+
+
+    # result = res.content
+    jsonData = res.decode("utf-8")
+    pprint(jsonData)
+    # pprint(jsonData)
+
+    # return jsonData
+
+
 if __name__ == '__main__':
-    result = ASR()
+    SongReco()

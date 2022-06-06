@@ -121,7 +121,7 @@
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap>../../../../../.designer/assets/tmp.jpg</pixmap>
+    <pixmap>../assets/tmp.jpg</pixmap>
    </property>
    <property name="scaledContents">
     <bool>true</bool>
@@ -225,7 +225,7 @@
     <rect>
      <x>500</x>
      <y>40</y>
-     <width>91</width>
+     <width>81</width>
      <height>81</height>
     </rect>
    </property>
@@ -300,7 +300,7 @@
     </size>
    </property>
    <property name="value">
-    <number>24</number>
+    <number>0</number>
    </property>
    <property name="textVisible">
     <bool>false</bool>
@@ -330,7 +330,7 @@
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>../../../../../.designer/assets/左.png</normaloff>../../../../../.designer/assets/左.png</iconset>
+        <normaloff>../assets/左.png</normaloff>../assets/左.png</iconset>
       </property>
      </widget>
     </item>
@@ -341,7 +341,7 @@
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>../../../../../.designer/assets/暂停.png</normaloff>../../../../../.designer/assets/暂停.png</iconset>
+        <normaloff>../assets/暂停.png</normaloff>../assets/暂停.png</iconset>
       </property>
      </widget>
     </item>
@@ -352,7 +352,7 @@
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>../../../../../.designer/assets/右.png</normaloff>../../../../../.designer/assets/右.png</iconset>
+        <normaloff>../assets/右.png</normaloff>../assets/右.png</iconset>
       </property>
      </widget>
     </item>
@@ -377,14 +377,14 @@
    <property name="font">
     <font>
      <weight>50</weight>
-     <italic>true</italic>
+     <italic>false</italic>
      <bold>false</bold>
-     <underline>true</underline>
+     <underline>false</underline>
      <kerning>false</kerning>
     </font>
    </property>
    <property name="text">
-    <string>0:23/3:26</string>
+    <string>0:00/0:00</string>
    </property>
   </widget>
   <widget class="QPushButton" name="loginBtn">

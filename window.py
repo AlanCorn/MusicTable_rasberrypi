@@ -2,8 +2,10 @@ import sys
 from operator import mod
 from pprint import pprint
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+import requests
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QTimer, QCoreApplication
+from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from api import getCaptcha, loginCaptcha, music_list
@@ -18,12 +20,20 @@ class myWindow(Ui_MainWindow):
     def __init__(self, Dialog):
         self.musicResultsList = []  # 搜索结果
         self.currentPlaying = -1  # 正在播放
-        self.musicPlaylists = []  # 播放列表
+        self.musicPlaylists = [{'name': '海阔天空',
+                                'singer': 'Beyond',
+                                'song_url': 'http://m8.music.126.net/20220606105627/2f1d8f15c3fa32575f39ca8748838ef5/ymusic/7cbb/a3a8/58c3/bc8284e8ee123ec77f4b1c0918579dbb.mp3',
+                                'picurl': 'http://p4.music.126.net/t40uccdajHS_-KkUHm_aEA==/109951166888743768.jpg'
+                                },
+                               {'name': '晴天',
+                                'singer': '拾七',
+                                'song_url': 'http://m801.music.126.net/20220606103322/4df0adb40cad2d2048a86ad3d421644e/jdymusic/obj/wo3DlMOGwrbDjj7DisKw/9519144606/afb7/7b58/d442/e182958cf0c618e2eff359204d971b80.mp3',
+                                'picurl': 'http://p3.music.126.net/yXxROcrQ_CLI7AOo3DrbDA==/109951166115397076.jpg'
+                                }]  # 播放列表
+
         super().setupUi(Dialog)
         # 实例化播放器
         self.mediaPlayer = Player()
-        self.mediaPlayer.set_uri(
-            "https://xfyun-doc.cn-bj.ufileos.com/1557306419885028/%E4%B8%80%E6%AC%A1%E5%B0%B1%E5%A5%BD16k.wav")
         self.loginDialog = LoginDialog()
         # 播放列表操作按钮
         self.clearList.clicked.connect(self.clearPlayList)
@@ -42,9 +52,10 @@ class myWindow(Ui_MainWindow):
         progressBar_Slot = QTimer(MainWindow)
         progressBar_Slot.timeout.connect(self.reloadProgressBar)
         progressBar_Slot.start(1000)
+        self.reloadPlayList()
 
     def reloadProgressBar(self):
-        if self.mediaPlayer.get_state() >= 0:
+        if self.mediaPlayer.get_state() == 1:
             wholeTime = self.mediaPlayer.get_length() / 1000
             nowTime = self.mediaPlayer.get_time() / 1000
             nowMin = int(nowTime / 60)
@@ -53,10 +64,8 @@ class myWindow(Ui_MainWindow):
             wholeSec = int(mod(wholeTime, 60))
             position = self.mediaPlayer.get_position()
             self.musicProgress.setValue(int(position * 100))
-            self.label_7.setText(str(nowMin) + ":" + str(nowSec) + "/" + str(wholeMin) + ":" + str(wholeSec))
-        else:
-            self.musicProgress.setValue(0)
-            self.label_7.setText("0:00/0:00")
+            self.label_7.setText(
+                str(nowMin) + ":" + str(nowSec).zfill(2) + "/" + str(wholeMin) + ":" + str(wholeSec).zfill(2))
 
     def reloadPlayList(self):
         self.list.clear()
@@ -80,6 +89,7 @@ class myWindow(Ui_MainWindow):
             print(self.results.item(i).checkState())  # 2 是被选中
             if self.results.item(i).checkState() == 2:
                 self.musicPlaylists.append(self.musicResultsList[i])
+                self.results.item(i).setCheckState(QtCore.Qt.Unchecked)
         self.reloadPlayList()
 
     def showDialog(self):
@@ -102,25 +112,37 @@ class myWindow(Ui_MainWindow):
         else:
             self.currentPlaying = -1
         if self.currentPlaying != -1:
-            self.mediaPlayer.play()
+            url = self.musicPlaylists[self.currentPlaying]['picurl']
+            res = requests.get(url)
+            img = QImage.fromData(res.content)
+            self.label_5.setPixmap(QPixmap.fromImage(img))
+            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
+            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
+            print("get_state", self.mediaPlayer.get_state())
+            print("is_playing", self.mediaPlayer.is_playing())
+            if self.mediaPlayer.get_state() == 0:
+                self.mediaPlayer.pause()
+            else:
+                self.mediaPlayer.play()
 
     def playPreMusic(self):
-        self.mediaPlayer.release()
-        self.currentPlaying = mod(self.currentPlaying + self.list.count() - 1, self.list.count())   # 上一首，如果没有上一首就是最后一首，循环
-        self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
-        self.playCurrentMusic()
+        if self.currentPlaying != -1:
+            self.mediaPlayer.release()
+            self.currentPlaying = mod(self.currentPlaying + self.list.count() - 1,
+                                      self.list.count())  # 上一首，如果没有上一首就是最后一首，循环
+            self.playCurrentMusic()
 
     def playNextMusic(self):
-        self.mediaPlayer.release()
-        self.currentPlaying = mod(self.currentPlaying + self.list.count() + 1, self.list.count())   # 同理
-        self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
-        self.playCurrentMusic()
+        if self.currentPlaying != -1:
+            self.mediaPlayer.release()
+            self.currentPlaying = mod(self.currentPlaying + self.list.count() + 1, self.list.count())  # 同理
+            self.playCurrentMusic()
 
     def jumpPre5s(self):
-        self.mediaPlayer.set_time(self.mediaPlayer.get_time()-5000)
+        self.mediaPlayer.set_time(self.mediaPlayer.get_time() - 5000)
 
     def jumpNext5s(self):
-        self.mediaPlayer.set_time(self.mediaPlayer.get_time()+5000)
+        self.mediaPlayer.set_time(self.mediaPlayer.get_time() + 5000)
 
     def clearPlayList(self):
         self.list.clear()
@@ -159,7 +181,10 @@ class LoginDialog(QWidget, Ui_LoginDialog):
         captcha = self.code.text()
         res = loginCaptcha(phone.strip(), captcha.strip())
         pprint(res)
-        myWindowObj.avatarLabel.setPixmap(QtGui.QPixmap(res['profile']['avatarUrl']))
+        url = res['profile']['avatarUrl']
+        res2 = requests.get(url)
+        img = QImage.fromData(res2.content)
+        myWindowObj.avatarLabel.setPixmap(QPixmap.fromImage(img))
         myWindowObj.nicknameLabel.setText(res['profile']['nickname'])
         self.hide()
         print("accepted")

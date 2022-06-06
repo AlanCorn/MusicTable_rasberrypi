@@ -78,11 +78,3 @@ class Player:
     # 拖动当前进度，传入0.0~1.0之间的浮点数(需要注意，只有当前多媒体格式或流媒体协议支持才会生效)
     def set_position(self, float_val):
         return self.media.set_position(float_val)
-
-    # 注册监听器
-    def add_callback(self, event_type, callback):
-        self.media.event_manager().event_attach(event_type, callback)
-
-    # 移除监听器
-    def remove_callback(self, event_type, callback):
-        self.media.event_manager().event_detach(event_type, callback)
