@@ -3,6 +3,7 @@ from urllib.request import Request
 
 import pyaudio
 from aip import AipSpeech
+# from acrcloud.recognizer import ACRCloudRecognizer
 from pprint import pprint
 
 import requests
@@ -10,6 +11,15 @@ import base64
 import json
 import time
 import hashlib
+
+# config = {
+#     'host': 'identify-cn-north-1.acrcloud.cn',
+#     'access_key': '386af593e19d9f2c439d31609702501a',
+#     'access_secret': 'iIT6WlFIcBn8yBBXM6sUYlgAXdBNiCUH96NRf5f3',
+#     'timeout': 10  # seconds
+# }
+#
+# acrClient = ACRCloudRecognizer(config)
 
 
 def record(sec):
@@ -22,7 +32,7 @@ def record(sec):
     # 录音时间
     RECORD_SECONDS = sec
     # 要写入的文件名
-    WAVE_OUTPUT_FILENAME = "./assets/output.wav"
+    WAVE_OUTPUT_FILENAME = "output.wav"
     # 创建PyAudio对象
     p = pyaudio.PyAudio()
 
@@ -78,7 +88,7 @@ def ASR():
             return fp.read()
 
     # 识别本地文件
-    res = client.asr(get_file_content('./assets/output.wav'), 'wav', 16000, {
+    res = client.asr(get_file_content('output.wav'), 'wav', 16000, {
         'dev_pid': 1536,
     })
 
@@ -95,9 +105,8 @@ def SongReco():
     appid = "cafb4a7d"
     apikey = "a9743f46db3cdfa33be6dede43282e91"
 
-    file = open('./assets/output.wav', 'rb')
-    info = file.read()                      # 音频二进制数据
-
+    file = open('output.wav', 'rb')
+    info = file.read()  # 音频二进制数据
 
     baseUrl = "http://webqbh.xfyun.cn/v1/service/v1/qbh"
     curtime = str(int(time.time()))
@@ -123,8 +132,6 @@ def SongReco():
     res = Request(baseUrl, info, header).data
     print(res)
 
-
-
     # result = res.content
     jsonData = res.decode("utf-8")
     pprint(jsonData)
@@ -133,5 +140,10 @@ def SongReco():
     # return jsonData
 
 
-if __name__ == '__main__':
-    SongReco()
+# def SongAcrCloud():
+#     result = acrClient.recognize_by_file('./assets/绿色 - 陈雪凝.mp3', 3, 10)
+#     print(result)
+#
+# if __name__ == '__main__':
+#     SongReco()
+#     # SongAcrCloud()

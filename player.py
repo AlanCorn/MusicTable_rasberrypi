@@ -1,6 +1,6 @@
 import vlc
 
-class Player:
+class VlcPlayer:
 
     def __init__(self, *args):
         if args:
@@ -78,3 +78,6 @@ class Player:
     # 拖动当前进度，传入0.0~1.0之间的浮点数(需要注意，只有当前多媒体格式或流媒体协议支持才会生效)
     def set_position(self, float_val):
         return self.media.set_position(float_val)
+
+
+

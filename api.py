@@ -88,3 +88,6 @@ def music_list(song_name):
     for i in result_song_list:
         print(i)
     return result_song_list
+
+
+# music_list("海阔天空")

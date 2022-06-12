@@ -9,8 +9,9 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from api import getCaptcha, loginCaptcha, music_list
-from player import Player
+from player import VlcPlayer
 from record import ASR as listenASR
+from gesture import gesture_recognition
 from ui.loginDialog import Ui_Dialog as Ui_LoginDialog
 from ui.ui import Ui_MainWindow
 
@@ -18,42 +19,47 @@ from ui.ui import Ui_MainWindow
 # 主窗口类
 class myWindow(Ui_MainWindow):
     def __init__(self, Dialog):
+        super().setupUi(Dialog)
         self.musicResultsList = []  # 搜索结果
         self.currentPlaying = -1  # 正在播放
-        self.currentPosition = 0
-        self.musicPlaylists = [{'name': '海阔天空',
-                                'singer': 'Beyond',
-                                'song_url': 'http://m8.music.126.net/20220606105627/2f1d8f15c3fa32575f39ca8748838ef5/ymusic/7cbb/a3a8/58c3/bc8284e8ee123ec77f4b1c0918579dbb.mp3',
-                                'picurl': 'http://p4.music.126.net/t40uccdajHS_-KkUHm_aEA==/109951166888743768.jpg'
-                                },
-                               {'name': '晴天',
-                                'singer': '拾七',
-                                'song_url': 'http://m801.music.126.net/20220606103322/4df0adb40cad2d2048a86ad3d421644e/jdymusic/obj/wo3DlMOGwrbDjj7DisKw/9519144606/afb7/7b58/d442/e182958cf0c618e2eff359204d971b80.mp3',
-                                'picurl': 'http://p3.music.126.net/yXxROcrQ_CLI7AOo3DrbDA==/109951166115397076.jpg'
-                                }]  # 播放列表
-
-        super().setupUi(Dialog)
-        # 实例化播放器
-        self.mediaPlayer = Player()
+        self.currentPosition = 0  # 播放列表控件中的位置
+        self.volume = 100
+        self.musicPlaylists = []  # 播放列表
+        gesture_recognition()
+        # 实例化VLC播放器
+        self.mediaPlayer = VlcPlayer()
+        self.mediaPlayer.set_volume(self.volume)
+        # 实例化登录对话框
         self.loginDialog = LoginDialog()
-        # 播放列表操作按钮
+        # 播放列表操作按钮点击事件监听
         self.clearList.clicked.connect(self.clearPlayList)
         self.deleteListItem.clicked.connect(self.deletePlayListItem)
-        # 媒体控制按钮
+        # 媒体控制按钮点击事件监听
         self.playbutton.clicked.connect(self.playCurrentMusic)
         self.prebutton.clicked.connect(self.playPreMusic)
         self.nextbutton.clicked.connect(self.playNextMusic)
-        # 添加到播放列表
+        self.pushButton.clicked.connect(self.jumpNext5s)
+        self.pushButton_2.clicked.connect(self.jumpPre5s)
+        # 添加到播放列表按钮点击事件监听
         self.addToList.clicked.connect(self.addToMusicPlaylists)
         self.searchMusicBtn.clicked.connect(self.searchMusicName)
-        # 登录与关闭
+        # 登录与关闭按钮
         self.loginBtn.clicked.connect(self.showDialog)
         self.closeBtn.clicked.connect(QCoreApplication.instance().quit)
-        # 每秒刷新进度条
+        # 每100毫秒刷新进度条
         progressBar_Slot = QTimer(MainWindow)
         progressBar_Slot.timeout.connect(self.reloadProgressBar)
-        progressBar_Slot.start(1000)
-        self.reloadPlayList()
+        progressBar_Slot.start(100)
+        # 音量滑块设置
+        self.volumeValue.setMinimum(0)
+        self.volumeValue.setMaximum(100)
+        self.volumeValue.setValue(100)
+        # 音量滑块变动信号监听
+        self.volumeValue.valueChanged.connect(self.volumeChanged)
+
+    def volumeChanged(self):
+        self.volume = self.volumeValue.value()
+        self.mediaPlayer.set_volume(self.volume)
 
     def reloadProgressBar(self):
         if self.mediaPlayer.get_state() == 1:
@@ -68,13 +74,7 @@ class myWindow(Ui_MainWindow):
             self.currentPosition = self.mediaPlayer.get_position()
             self.label_7.setText(
                 str(nowMin) + ":" + str(nowSec).zfill(2) + "/" + str(wholeMin) + ":" + str(wholeSec).zfill(2))
-        if self.currentPlaying != -1:
-            url = self.musicPlaylists[self.currentPlaying]['picurl']
-            res = requests.get(url)
-            img = QImage.fromData(res.content)
-            self.label_5.setPixmap(QPixmap.fromImage(img))
-            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
-            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
+
 
     def reloadPlayList(self):
         self.list.clear()
@@ -109,8 +109,11 @@ class myWindow(Ui_MainWindow):
         print("识别到的音乐名", name)
         result = music_list(name)
         # 将搜索结果加入 musicResultsList
-        self.musicResultsList = result
-        myWindowObj.addItemToResults()
+        if name != "3307":
+            self.musicResultsList = result
+            myWindowObj.addItemToResults()
+        else:
+            self.nicknameLabel.setText("识别失败")
 
     def playCurrentMusic(self):
         if self.list.count() > 0:
@@ -119,13 +122,17 @@ class myWindow(Ui_MainWindow):
         else:
             self.currentPlaying = -1
         if self.currentPlaying != -1:
-            print("get_state", self.mediaPlayer.get_state())
-            print("is_playing", self.mediaPlayer.is_playing())
             if self.mediaPlayer.get_state() == 0:
                 self.mediaPlayer.play()
             elif self.mediaPlayer.get_state() == 1:
                 self.mediaPlayer.pause()
             else:
+                url = self.musicPlaylists[self.currentPlaying]['picurl']
+                res = requests.get(url)
+                img = QImage.fromData(res.content)
+                self.label_5.setPixmap(QPixmap.fromImage(img))
+                self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
+                self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
                 self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
                 self.mediaPlayer.play()
 
@@ -134,19 +141,42 @@ class myWindow(Ui_MainWindow):
             self.mediaPlayer.release()
             self.currentPlaying = mod(self.currentPlaying + self.list.count() - 1,
                                       self.list.count())  # 上一首，如果没有上一首就是最后一首，循环
+
+            self.mediaPlayer = VlcPlayer()
+            self.mediaPlayer.set_volume(self.volume)
+            # self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
             self.playCurrentMusic()
+        if self.currentPlaying != -1:
+            url = self.musicPlaylists[self.currentPlaying]['picurl']
+            res = requests.get(url)
+            img = QImage.fromData(res.content)
+            self.label_5.setPixmap(QPixmap.fromImage(img))
+            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
+            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
 
     def playNextMusic(self):
         if self.currentPlaying != -1:
             self.mediaPlayer.release()
             self.currentPlaying = mod(self.currentPlaying + self.list.count() + 1, self.list.count())  # 同理
+            # self.mediaPlayer.set_uri(self.musicPlaylists[self.currentPlaying]['song_url'])
+            self.mediaPlayer = VlcPlayer()
+            self.mediaPlayer.set_volume(self.volume)
             self.playCurrentMusic()
+        if self.currentPlaying != -1:
+            url = self.musicPlaylists[self.currentPlaying]['picurl']
+            res = requests.get(url)
+            img = QImage.fromData(res.content)
+            self.label_5.setPixmap(QPixmap.fromImage(img))
+            self.label_3.setText(self.musicPlaylists[self.currentPlaying]['name'])
+            self.artist.setText(self.musicPlaylists[self.currentPlaying]['singer'])
 
     def jumpPre5s(self):
-        self.mediaPlayer.set_time(self.mediaPlayer.get_time() - 5000)
+        if self.mediaPlayer.is_playing() == 1:
+            self.mediaPlayer.set_time(self.mediaPlayer.get_time() - 5000)
 
     def jumpNext5s(self):
-        self.mediaPlayer.set_time(self.mediaPlayer.get_time() + 5000)
+        if self.mediaPlayer.is_playing() == 1:
+            self.mediaPlayer.set_time(self.mediaPlayer.get_time() + 5000)
 
     def clearPlayList(self):
         self.list.clear()
