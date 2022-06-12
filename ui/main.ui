@@ -364,8 +364,8 @@
   <widget class="QPushButton" name="closeBtn">
    <property name="geometry">
     <rect>
-     <x>400</x>
-     <y>270</y>
+     <x>680</x>
+     <y>20</y>
      <width>86</width>
      <height>33</height>
     </rect>
@@ -400,7 +400,7 @@
     <string>删除</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="gesture">
+  <widget class="QPushButton" name="gestureBtn">
    <property name="geometry">
     <rect>
      <x>400</x>
@@ -449,7 +449,7 @@
    <property name="geometry">
     <rect>
      <x>400</x>
-     <y>310</y>
+     <y>270</y>
      <width>86</width>
      <height>33</height>
     </rect>

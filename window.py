@@ -1,6 +1,9 @@
+import ctypes
 import sys
+from asyncio import run
 from operator import mod
 from pprint import pprint
+import threading
 
 import requests
 from PyQt5 import QtWidgets, QtCore
@@ -19,13 +22,13 @@ from ui.ui import Ui_MainWindow
 # 主窗口类
 class myWindow(Ui_MainWindow):
     def __init__(self, Dialog):
+        self.gestureThread = None
         super().setupUi(Dialog)
         self.musicResultsList = []  # 搜索结果
         self.currentPlaying = -1  # 正在播放
         self.currentPosition = 0  # 播放列表控件中的位置
-        self.volume = 100
+        self.volume = 100  # 音量
         self.musicPlaylists = []  # 播放列表
-        gesture_recognition()
         # 实例化VLC播放器
         self.mediaPlayer = VlcPlayer()
         self.mediaPlayer.set_volume(self.volume)
@@ -46,10 +49,14 @@ class myWindow(Ui_MainWindow):
         # 登录与关闭按钮
         self.loginBtn.clicked.connect(self.showDialog)
         self.closeBtn.clicked.connect(QCoreApplication.instance().quit)
+        # 打开手势按钮
+        self.gestureBtn.clicked.connect(self.gestureChanged)
         # 每100毫秒刷新进度条
         progressBar_Slot = QTimer(MainWindow)
         progressBar_Slot.timeout.connect(self.reloadProgressBar)
         progressBar_Slot.start(100)
+        # 静音按钮
+        self.slienceBtn.clicked.connect(self.setSilence)
         # 音量滑块设置
         self.volumeValue.setMinimum(0)
         self.volumeValue.setMaximum(100)
@@ -60,6 +67,22 @@ class myWindow(Ui_MainWindow):
     def volumeChanged(self):
         self.volume = self.volumeValue.value()
         self.mediaPlayer.set_volume(self.volume)
+
+    def setSilence(self):
+        self.volume = 0
+        self.volumeValue.setValue(self.volume)
+        self.mediaPlayer.set_volume(self.volume)
+
+    def gestureChanged(self):
+        if self.gestureBtn.text() == "打开手势":
+            print("### 打开手势操作 ###")
+            self.gestureBtn.setText("关闭手势")
+            self.gestureThread = gestureThread()
+            self.gestureThread.start()
+        else:
+            print("### 关闭手势操作 ###")
+            self.gestureThread.setStopFlag()
+            self.gestureBtn.setText("打开手势")
 
     def reloadProgressBar(self):
         if self.mediaPlayer.get_state() == 1:
@@ -74,7 +97,6 @@ class myWindow(Ui_MainWindow):
             self.currentPosition = self.mediaPlayer.get_position()
             self.label_7.setText(
                 str(nowMin) + ":" + str(nowSec).zfill(2) + "/" + str(wholeMin) + ":" + str(wholeSec).zfill(2))
-
 
     def reloadPlayList(self):
         self.list.clear()
@@ -268,6 +290,44 @@ class LoginDialog(QWidget, Ui_LoginDialog):
         print("phone", phone)
         self.buttonGetCode.setEnabled(False)
         self.editing = self.code
+
+
+class gestureThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self, daemon=True)
+        self.stopFlag = 0
+
+    def run(self):
+        try:
+            while self.stopFlag == 0:
+                result = gesture_recognition()
+                print("# 手势识别结果：", result)
+                if self.stopFlag == 0:
+                    if result == "比心心":
+                        myWindowObj.addItemToResults()
+                    elif result == "数字1":
+                        myWindowObj.jumpPre5s()
+                    elif result == "数字2":
+                        myWindowObj.playPreMusic()
+                    elif result == "数字3":
+                        myWindowObj.playCurrentMusic()
+                    elif result == "数字4":
+                        myWindowObj.playNextMusic()
+                    elif result == "数字5":
+                        myWindowObj.jumpNext5s()
+                    elif result == "Fist":
+                        myWindowObj.setSilence()
+                    elif result == "Fist":
+                        myWindowObj.setSilence()
+                    else:
+                        pass
+        finally:
+            print("线程关闭")
+
+    def setStopFlag(self):
+        self.stopFlag = 1
+
+
 
 
 if __name__ == "__main__":

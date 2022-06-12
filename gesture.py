@@ -1,5 +1,3 @@
-import datetime
-
 import cv2
 from aip import AipBodyAnalysis
 
@@ -20,7 +18,7 @@ capture = cv2.VideoCapture(0)  # 0为默认摄像头
 
 
 def gesture_recognition():
-    count = []
+    resultList = []
     # 第一个参数ret 为True 或者False,代表有没有读取到图片
     # 第二个参数frame表示截取到一帧的图片
     for i in range(10):
@@ -31,18 +29,17 @@ def gesture_recognition():
 
             gesture = gesture_client.gesture(image)  # AipBodyAnalysis内部函数
             words = gesture['result'][0]['classname']
-            count.append(hand[words])
+            if hand[words] != "脸":
+                resultList.append(hand[words])
             print(hand[words])
         except:
             print('未检测到识别对象')
-    if len(count) != 0:
-        return max(count, key=count.count)
+    if len(resultList) != 0:
+        result = max(resultList, key=resultList.count)
+        if resultList.count(result) > 2:
+            return result
+        else:
+            return "识别失败"
     else:
         return "识别失败"
 
-
-# # # Thread(target=gesture_recognition).start()  # 引入线程防止在识别的时候卡死
-start = datetime.datetime.now()
-gesture_recognition()
-end = datetime.datetime.now()
-print('totally time is ', end - start)
