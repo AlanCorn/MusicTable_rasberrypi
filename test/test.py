@@ -1,4 +1,5 @@
-﻿from threading import Thread
+﻿# 测试代码，不参与主程序
+from threading import Thread
 from time import sleep, ctime
 
 def func(name, sec):
