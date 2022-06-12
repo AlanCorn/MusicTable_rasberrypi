@@ -6,7 +6,7 @@ from pprint import pprint
 import threading
 
 import requests
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QTimer, QCoreApplication
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QWidget
@@ -117,7 +117,6 @@ class myWindow(Ui_MainWindow):
     def addToMusicPlaylists(self):
         # 将勾选的的搜索结果添加到播放队列中
         for i in range(self.results.count()):
-            print(self.results.item(i).checkState())  # 2 是被选中
             if self.results.item(i).checkState() == 2:
                 self.musicPlaylists.append(self.musicResultsList[i])
                 self.results.item(i).setCheckState(QtCore.Qt.Unchecked)
@@ -202,10 +201,20 @@ class myWindow(Ui_MainWindow):
 
     def clearPlayList(self):
         self.list.clear()
+        self.mediaPlayer.release()
+        self.mediaPlayer = VlcPlayer()
+        self.label_5.setPixmap(QtGui.QPixmap("../assets/album.png"))
+        self.label_3.setText("暂无歌曲")
+        self.artist.setText("")
 
     def deletePlayListItem(self):
+
         print("删除行", self.list.currentRow())
-        self.list.takeItem(self.list.currentRow())
+        if self.list.currentRow() == self.currentPlaying:
+            self.playNextMusic()
+            self.list.takeItem(self.list.currentRow())
+        else:
+            self.list.takeItem(self.list.currentRow())
 
 
 class LoginDialog(QWidget, Ui_LoginDialog):
@@ -303,7 +312,7 @@ class gestureThread(threading.Thread):
                 result = gesture_recognition()
                 print("# 手势识别结果：", result)
                 if self.stopFlag == 0:
-                    if result == "比心心":
+                    if result == "点赞":
                         myWindowObj.addItemToResults()
                     elif result == "数字1":
                         myWindowObj.jumpPre5s()
