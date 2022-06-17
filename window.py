@@ -97,6 +97,8 @@ class myWindow(Ui_MainWindow):
             self.currentPosition = self.mediaPlayer.get_position()
             self.label_7.setText(
                 str(nowMin) + ":" + str(nowSec).zfill(2) + "/" + str(wholeMin) + ":" + str(wholeSec).zfill(2))
+            if self.mediaPlayer.get_length() == self.mediaPlayer.get_time():
+                self.playNextMusic()
 
     def reloadPlayList(self):
         self.list.clear()
